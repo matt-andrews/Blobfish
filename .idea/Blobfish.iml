@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/crates/blobfish-api/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/crates/blobfish-client/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/crates/blobfish-core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/crates/blobfish-meta/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/crates/blobfish-node/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/crates/blobfish-server/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/crates/blobfish-store/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blobfish/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/blobfish/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

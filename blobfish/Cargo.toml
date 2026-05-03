@@ -1,0 +1,7 @@
+[workspace]
+resolver = "3"
+members = ["crates/blobfish-api", "crates/blobfish-client", "crates/blobfish-core", "crates/blobfish-meta", "crates/blobfish-node", "crates/blobfish-server", "crates/blobfish-store"]
+
+[workspace.dependencies]
+blobfish-core = { path = "crates/blobfish-core" }
+blobfish-api = { path = "crates/blobfish-api" }
