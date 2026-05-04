@@ -20,7 +20,7 @@ pub enum ApiError {
 
 #[derive(Error, Debug)]
 pub enum BucketError{
-    #[error("Bad request: {0}")]
+    #[error("Invalid Bucket Name: {0}")]
     InvalidBucketName(String)
 }
 
@@ -28,7 +28,7 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, message) = match &self {
             ApiError::BadBucketRequest(e) => {
-                tracing::debug!(msg = %e, "Bad request");
+                tracing::debug!(msg = %e, "Bad Bucket request");
                 (StatusCode::BAD_REQUEST, self.to_string())
             },
             ApiError::BadRequest(s) => {

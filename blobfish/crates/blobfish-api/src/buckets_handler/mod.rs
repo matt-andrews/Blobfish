@@ -6,7 +6,7 @@ mod handlers;
 
 pub fn router(router: Router<ObjectService>) -> Router<ObjectService> {
     router
-        .route(("/buckets"), get(handlers::get_buckets))
+        .route("/buckets", get(handlers::get_buckets))
         .route( "/buckets/{bucket}"
                ,put(handlers::put_bucket)
                .delete(handlers::delete_bucket)

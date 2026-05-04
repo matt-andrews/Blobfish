@@ -37,8 +37,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn run(config: models::Config) -> anyhow::Result<()> {
-    let db = blobfish_meta::init()?;
-    let object_service: ObjectService = ObjectService::new(Arc::new(db), config.node.storage_root);
+    let db = tokio::task::spawn_blocking(|| {
+        blobfish_meta::init()
+    }).await??;
+
+    let object_service: ObjectService = ObjectService::new(Arc::new(db));
 
     info!("Serving blobfish server at {}...", config.node.bind_addr);
 

@@ -41,6 +41,7 @@ pub async fn delete_bucket(
     State(state): State<ObjectService>,
     Path(bucket): Path<String>
 ) -> Result<StatusCode, ApiError>{
+    //check for content?
     state.delete_bucket(&bucket).await?;
-    Ok(StatusCode::OK)
+    Ok(StatusCode::NO_CONTENT)
 }

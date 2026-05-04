@@ -1,28 +1,27 @@
-use std::path::{PathBuf};
 use std::sync::Arc;
-use anyhow::Error;
-use crate::errors::BucketError;
+use crate::errors::{ApiError, BucketError};
 use crate::models::Bucket;
 
 #[derive(Clone)]
 pub struct ObjectService{
     repository: Arc<dyn Repository>,
-    storage_root: PathBuf
 }
 impl ObjectService{
-    pub fn new(repository: Arc<dyn Repository>, storage_root: PathBuf)-> Self {
+    pub fn new(repository: Arc<dyn Repository>)-> Self {
         Self{
             repository,
-            storage_root
         }
     }
-    pub async fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<()>{
+    pub async fn put_bucket(&self, bucket: &Bucket) -> Result<(), ApiError>{
         Self::is_valid_bucket_name(bucket.name())?;
         let owned_rep = Arc::clone(&self.repository);
         let owned_bucket = bucket.to_owned();
-        tokio::task::spawn_blocking(move || {
+        match tokio::task::spawn_blocking(move || {
             return owned_rep.put_bucket(&owned_bucket);
-        }).await?
+        }).await{
+            Ok(_) => Ok(()),
+            Err(e) => Err(ApiError::BadRequest(e.to_string()))
+        }
     }
     pub async fn get_bucket(&self, name: &str) -> anyhow::Result<Option<Bucket>>{
         let owned_rep = Arc::clone(&self.repository);
@@ -53,7 +52,7 @@ impl ObjectService{
     }
     pub async fn health_check(&self) -> anyhow::Result<bool>{
         let owned_rep = Arc::clone(&self.repository);
-        let db = tokio::task::spawn_blocking(move || {
+        _ = tokio::task::spawn_blocking(move || {
             return owned_rep.health_check();
         }).await?;
 
@@ -63,17 +62,17 @@ impl ObjectService{
     /*
     * Valid bucket name: 3–63 chars. [a-z0-9] and - only. No leading -, no trailing -, no --.
     */
-    fn is_valid_bucket_name(name: &str) -> anyhow::Result<()>{
+    fn is_valid_bucket_name(name: &str) -> Result<(), BucketError>{
         let len = name.len();
-        if(len >= 3 && len <= 63
+        if len >= 3 && len <= 63
             && !name.starts_with('-')
             && !name.ends_with('-')
             && !name.contains("--")
-            && name.bytes().all(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'-')))
+            && name.bytes().all(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'-'))
         {
             return Ok(());
         }
-        return Err(Error::from(BucketError::InvalidBucketName(name.to_string())));
+        Err(BucketError::InvalidBucketName(name.to_string()))
     }
 }
 pub trait Repository: Send + Sync{

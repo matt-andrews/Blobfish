@@ -23,7 +23,7 @@ fi
 #get returns all
 response=$(curl -s -w "\n%{http_code}" localhost:31415/buckets)
 body=$(echo "$response" | sed '$d')
-if [ "$body" -ne "" ]; then
+if [ "$body" != '["photos"]' ]; then
   echo "Failed 3: $body"
 fi
 
@@ -36,32 +36,47 @@ fi
 #get returns none
 response=$(curl -s -w "\n%{http_code}" localhost:31415/buckets)
 body=$(echo "$response" | sed '$d')
-if [ "$body" -ne "" ]; then
+if [ "$body" != '[]' ]; then
   echo "Failed 5: $body"
 fi
 
-#bash restart.sh
+#bad blob name returns 400
+status_code=$(curl -X PUT -s -o /dev/null -w "%{http_code}" localhost:31415/buckets/pho_tos)
+if [ "$status_code" -ne 400 ]; then
+  echo "Failed 6: $status_code"
+fi
+
+#get returns none
+response=$(curl -s -w "\n%{http_code}" localhost:31415/buckets)
+body=$(echo "$response" | sed '$d')
+if [ "$body" != '[]' ]; then
+  echo "Failed 7: $body"
+fi
+
+bash restart.sh
 
 #get still returns none after restart
 response=$(curl -s -w "\n%{http_code}" localhost:31415/buckets)
 body=$(echo "$response" | sed '$d')
-if [ "$body" -ne "" ]; then
-  echo "Failed 6: $body"
+if [ "$body" != '[]' ]; then
+  echo "Failed 8: $body"
 fi
 
 #put now creates
 status_code=$(curl -X PUT -s -o /dev/null -w "%{http_code}" localhost:31415/buckets/photos)
 if [ "$status_code" -ne 201 ]; then
-  echo "Failed 7: $status_code"
+  echo "Failed 9: $status_code"
 fi
 
-#bash restart.sh
+bash restart.sh
 
 #bucket survives restart
 response=$(curl -s -w "\n%{http_code}" localhost:31415/buckets)
 body=$(echo "$response" | sed '$d')
-if [ "$body" -ne "" ]; then
-  echo "Failed 8: $body"
+if [ "$body" != '["photos"]' ]; then
+  echo "Failed 10: $body"
 fi
 
-#bash down.sh
+echo "done."
+
+bash down.sh

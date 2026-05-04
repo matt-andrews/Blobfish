@@ -1,4 +1,4 @@
-use redb::{Database, Error, ReadableDatabase, ReadableTable, TableDefinition, Value};
+use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 use blobfish_core::models::Bucket;
 use blobfish_core::object_service::Repository;
 
@@ -8,10 +8,11 @@ pub struct RedDbStore{
 }
 
 impl RedDbStore {
-    pub fn new(db: Database) -> Self {
-        Self{
-            db
-        }
+    pub fn new(db: Database) -> anyhow::Result<Self> {
+        let txn = db.begin_write()?;
+        txn.open_table(BUCKETS)?;
+        txn.commit()?;
+        Ok(Self { db })
     }
 }
 
@@ -61,7 +62,7 @@ impl Repository for RedDbStore{
         let table = txn.open_table(BUCKETS)?;
         Ok(table.get(name)?.is_some())
     }
-    
+
     fn health_check(&self) -> anyhow::Result<()> {
         self.db.begin_read()?;
         Ok(())

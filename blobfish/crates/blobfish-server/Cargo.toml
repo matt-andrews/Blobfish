@@ -9,7 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
-toml = "1.1.2+spec-1.1.0"
+toml = "1.1.2"
 blobfish-core = { workspace = true }
 blobfish-api = { workspace = true }
 blobfish-meta = { workspace = true }
