@@ -5,11 +5,11 @@
 ## Deliverables
 
 - [ ] `PUT /buckets/{bucket}` → 201 / 200 / 400
-- [ ] `GET /buckets` → 200 JSON array
-- [ ] `DELETE /buckets/{bucket}` → 204 / 409 / 404
-- [ ] Bucket name validation (3–63 chars, lowercase alnum + hyphens, no leading/trailing/consecutive hyphens)
-- [ ] redb metadata store wired into `blobfish-meta` behind `MetadataStore` trait
-- [ ] All redb calls wrapped in `tokio::task::spawn_blocking`
+- [x] `GET /buckets` → 200 JSON array
+- [x] `DELETE /buckets/{bucket}` → 204 / 409 / 404
+- [x] Bucket name validation (3–63 chars, lowercase alnum + hyphens, no leading/trailing/consecutive hyphens)
+- [x] redb metadata store wired into `blobfish-meta` behind `MetadataStore` trait
+- [x] All redb calls wrapped in `tokio::task::spawn_blocking`
 - [ ] `GET /readyz` → checks DB opens, storage root is writable, node descriptor exists
 - [ ] Bucket creation is idempotent
 - [ ] Bucket deletion fails with 409 when not empty (always passes for now — no objects yet)

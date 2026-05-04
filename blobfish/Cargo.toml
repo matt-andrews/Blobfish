@@ -5,3 +5,13 @@ members = ["crates/blobfish-api", "crates/blobfish-client", "crates/blobfish-cor
 [workspace.dependencies]
 blobfish-core = { path = "crates/blobfish-core" }
 blobfish-api = { path = "crates/blobfish-api" }
+blobfish-meta = { path = "crates/blobfish-meta" }
+
+chrono = { version = "0.4.44", features = ["serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.52.1", features = ["rt", "rt-multi-thread", "macros"] }
+anyhow = "1.0.102"
+thiserror = "2.0.18"
+tracing = "0.1.44"
+axum = "0.8.9"

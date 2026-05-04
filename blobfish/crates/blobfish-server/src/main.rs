@@ -1,7 +1,9 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use blobfish_core::models;
 use tracing::{info};
+use blobfish_core::object_service::ObjectService;
 
 #[derive(Parser)]
 struct Cli {
@@ -34,10 +36,19 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run(config: blobfish_core::models::Config) -> anyhow::Result<()> {
+async fn run(config: models::Config) -> anyhow::Result<()> {
+    let db = blobfish_meta::init()?;
+    let object_service: ObjectService = ObjectService::new(Arc::new(db), config.node.storage_root);
+
     info!("Serving blobfish server at {}...", config.node.bind_addr);
+
     let listener = tokio::net::TcpListener::bind(&config.node.bind_addr).await?;
-    axum::serve(listener, blobfish_api::routes::router()).await?;
+
+    axum::serve(
+        listener,
+        blobfish_api::routes::router(object_service)
+    ).await?;
+
     Ok(())
 }
 
