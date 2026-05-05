@@ -4,3 +4,7 @@ pub enum DbResult{
     Deleted,
     NotFound,
 }
+
+pub enum NodeStatus{
+    Ok
+}

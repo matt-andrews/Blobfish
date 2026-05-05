@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::bucket::Bucket;
+use crate::models::bucket::Bucket;
 use crate::types::DbResult;
 
 #[derive(Clone)]

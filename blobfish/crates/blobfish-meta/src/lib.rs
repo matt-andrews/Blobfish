@@ -1,5 +1,5 @@
 use redb::Database;
-use blobfish_core::models::Config;
+use blobfish_core::models::config::Config;
 use blobfish_core::object_service::MetadataStore;
 use crate::redb_store::RedDbStore;
 

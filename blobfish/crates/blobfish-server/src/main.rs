@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use tracing::{info};
-use blobfish_core::models::Config;
+use blobfish_core::models::config::Config;
 use blobfish_core::object_service::ObjectService;
 
 #[derive(Parser)]

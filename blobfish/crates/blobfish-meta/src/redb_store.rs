@@ -1,5 +1,5 @@
 use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
-use blobfish_core::bucket::Bucket;
+use blobfish_core::models::bucket::Bucket;
 use blobfish_core::object_service::MetadataStore;
 use blobfish_core::types::DbResult;
 
