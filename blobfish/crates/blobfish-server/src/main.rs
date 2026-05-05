@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use clap::{Parser, Subcommand};
-use blobfish_core::models;
 use tracing::{info};
+use blobfish_core::models::Config;
 use blobfish_core::object_service::ObjectService;
 
 #[derive(Parser)]
@@ -28,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
     match args.command{
         Commands::Serve{config} => {
             let config_str = &std::fs::read_to_string(config)?;
-            let config: models::Config = toml::from_str(config_str)?;
+            let config: Config = toml::from_str(config_str)?;
             run(config).await?;
         }
     }
@@ -36,12 +36,14 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run(config: models::Config) -> anyhow::Result<()> {
-    let db = tokio::task::spawn_blocking(|| {
-        blobfish_meta::init()
-    }).await??;
+async fn run(config: Config) -> anyhow::Result<()> {
 
-    let object_service: ObjectService = ObjectService::new(Arc::new(db));
+    let meta_config: Config = config.clone();
+    let db = tokio::task::spawn_blocking(|| {
+        blobfish_meta::init(meta_config)
+    }).await?;
+
+    let object_service: ObjectService = ObjectService::new(Arc::new(db?));
 
     info!("Serving blobfish server at {}...", config.node.bind_addr);
 
