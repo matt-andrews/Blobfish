@@ -49,11 +49,9 @@ impl ObjectService{
     }
     pub async fn health_check(&self) -> anyhow::Result<bool>{
         let owned_rep = Arc::clone(&self.repository);
-        _ = tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             return owned_rep.health_check();
-        }).await?;
-
-        Ok(true)
+        }).await?
     }
 
 
@@ -64,5 +62,5 @@ pub trait Repository: Send + Sync{
     fn get_all_buckets(&self) -> anyhow::Result<Vec<String>>;
     fn delete_bucket(&self, name: &str) -> anyhow::Result<DbResult>;
     fn does_bucket_exist(&self, name: &str) -> anyhow::Result<bool>;
-    fn health_check(&self) -> anyhow::Result<()>;
+    fn health_check(&self) -> anyhow::Result<bool>;
 }

@@ -71,8 +71,9 @@ impl Repository for RedDbStore{
         Ok(table.get(name)?.is_some())
     }
 
-    fn health_check(&self) -> anyhow::Result<()> {
+    fn health_check(&self) -> anyhow::Result<bool> {
         self.db.begin_read()?;
-        Ok(())
+        self.db.begin_write()?;
+        Ok(true)
     }
 }
