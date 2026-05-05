@@ -46,10 +46,14 @@ impl Repository for RedDbStore{
         let txn = self.db.begin_read()?;
         let table = txn.open_table(BUCKETS)?;
 
-        Ok(table
+        let buckets = table
             .iter()?
-            .map(|entry| entry.unwrap().0.value().to_owned())
-            .collect())
+            .map(|entry| -> anyhow::Result<String> {
+                let (name, _) = entry?;
+                Ok(name.value().to_owned())
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        Ok(buckets)
     }
 
     fn delete_bucket(&self, name: &str) -> anyhow::Result<DbResult> {
