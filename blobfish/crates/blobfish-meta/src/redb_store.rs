@@ -1,6 +1,7 @@
 use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 use blobfish_core::models::Bucket;
 use blobfish_core::object_service::Repository;
+use blobfish_core::types::DbResult;
 
 const BUCKETS: TableDefinition<&str, &[u8]> = TableDefinition::new("buckets");
 pub struct RedDbStore{
@@ -17,7 +18,11 @@ impl RedDbStore {
 }
 
 impl Repository for RedDbStore{
-    fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<()> {
+    fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<DbResult> {
+        let mut result: DbResult = DbResult::Created;
+        if self.does_bucket_exist(bucket.name())?{
+            result = DbResult::Updated;
+        }
         let bytes = serde_json::to_vec(bucket)?;
         let txn = self.db.begin_write()?;
         {
@@ -25,7 +30,7 @@ impl Repository for RedDbStore{
             table.insert(bucket.name(), bytes.as_slice())?;
         }
         txn.commit()?;
-        Ok(())
+        Ok(result)
     }
 
     fn get_bucket(&self, name: &str) -> anyhow::Result<Option<Bucket>> {
@@ -47,14 +52,17 @@ impl Repository for RedDbStore{
             .collect())
     }
 
-    fn delete_bucket(&self, name: &str) -> anyhow::Result<()> {
+    fn delete_bucket(&self, name: &str) -> anyhow::Result<DbResult> {
+        if !self.does_bucket_exist(name)?{
+            return Ok(DbResult::NotFound)
+        }
         let txn = self.db.begin_write()?;
         {
             let mut table = txn.open_table(BUCKETS)?;
             table.remove(name)?;
         }
         txn.commit()?;
-        Ok(())
+        Ok(DbResult::Deleted)
     }
 
     fn does_bucket_exist(&self, name: &str) -> anyhow::Result<bool> {
