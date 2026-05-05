@@ -3,7 +3,6 @@ use axum::http::StatusCode;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
 use blobfish_core::bucket::Bucket;
-use blobfish_core::errors::BucketError;
 use blobfish_core::object_service::ObjectService;
 use blobfish_core::types::DbResult;
 use crate::errors::ApiError;
@@ -28,22 +27,10 @@ pub async fn put_bucket(
     Path(bucket): Path<String>
 ) -> Result<StatusCode, ApiError> {
     let obj: Bucket = Bucket::new(&bucket);
-    match state.put_bucket(&obj).await{
-        Ok(v) => {
-            match v {
-                DbResult::Created => Ok(StatusCode::CREATED),
-                DbResult::Updated => Ok(StatusCode::OK),
-                _ => Ok(StatusCode::CONFLICT)
-            }
-        },
-        Err(err) => {
-            if let Some(e) = err.downcast_ref::<BucketError>() {
-                return match e {
-                    BucketError::InvalidBucketName(_) => Ok(StatusCode::BAD_REQUEST),
-                }
-            };
-            Ok(StatusCode::INTERNAL_SERVER_ERROR)
-        },
+    match state.put_bucket(&obj).await?{
+        DbResult::Created => Ok(StatusCode::CREATED),
+        DbResult::Updated => Ok(StatusCode::OK),
+        _ => Ok(StatusCode::CONFLICT)
     }
 }
 pub async fn delete_bucket(
