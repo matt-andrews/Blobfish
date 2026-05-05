@@ -2,7 +2,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
-use blobfish_core::models::Bucket;
+use blobfish_core::bucket::Bucket;
 use blobfish_core::object_service::ObjectService;
 use blobfish_core::errors::ApiError;
 use blobfish_core::types::DbResult;
@@ -26,7 +26,7 @@ pub async fn put_bucket(
     State(state): State<ObjectService>,
     Path(bucket): Path<String>
 ) -> Result<StatusCode, ApiError> {
-    let obj: Bucket = Bucket::new(bucket);
+    let obj: Bucket = Bucket::new(&bucket);
     match state.put_bucket(&obj).await?{
         DbResult::Created => Ok(StatusCode::CREATED),
         DbResult::Updated => Ok(StatusCode::OK),

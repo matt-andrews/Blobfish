@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use crate::errors::{ApiError, BucketError};
-use crate::models::Bucket;
+use crate::bucket::Bucket;
+use crate::errors::{ApiError};
 use crate::types::DbResult;
 
 #[derive(Clone)]
@@ -14,7 +14,7 @@ impl ObjectService{
         }
     }
     pub async fn put_bucket(&self, bucket: &Bucket) -> Result<DbResult, ApiError>{
-        Self::is_valid_bucket_name(bucket.name())?;
+        bucket.validate_name()?;
         let owned_rep = Arc::clone(&self.repository);
         let owned_bucket = bucket.to_owned();
         match tokio::task::spawn_blocking(move || {
@@ -60,21 +60,7 @@ impl ObjectService{
         Ok(true)
     }
 
-    /*
-    * Valid bucket name: 3–63 chars. [a-z0-9] and - only. No leading -, no trailing -, no --.
-    */
-    fn is_valid_bucket_name(name: &str) -> Result<(), BucketError>{
-        let len = name.len();
-        if len >= 3 && len <= 63
-            && !name.starts_with('-')
-            && !name.ends_with('-')
-            && !name.contains("--")
-            && name.bytes().all(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'-'))
-        {
-            return Ok(());
-        }
-        Err(BucketError::InvalidBucketName(name.to_string()))
-    }
+
 }
 pub trait Repository: Send + Sync{
     fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<DbResult>;
@@ -83,144 +69,4 @@ pub trait Repository: Send + Sync{
     fn delete_bucket(&self, name: &str) -> anyhow::Result<DbResult>;
     fn does_bucket_exist(&self, name: &str) -> anyhow::Result<bool>;
     fn health_check(&self) -> anyhow::Result<()>;
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ObjectService;
-
-    // --- valid ---
-
-    #[test]
-    fn valid_simple() {
-        assert!(ObjectService::is_valid_bucket_name("my-bucket").is_ok());
-    }
-
-    #[test]
-    fn valid_all_lowercase() {
-        assert!(ObjectService::is_valid_bucket_name("abcdefghij").is_ok());
-    }
-
-    #[test]
-    fn valid_all_digits() {
-        assert!(ObjectService::is_valid_bucket_name("123").is_ok());
-    }
-
-    #[test]
-    fn valid_min_length() {
-        assert!(ObjectService::is_valid_bucket_name("abc").is_ok());
-    }
-
-    #[test]
-    fn valid_max_length() {
-        assert!(ObjectService::is_valid_bucket_name(&"a".repeat(63)).is_ok());
-    }
-
-    #[test]
-    fn valid_single_hyphen_middle() {
-        assert!(ObjectService::is_valid_bucket_name("a-b").is_ok());
-    }
-
-    #[test]
-    fn valid_multiple_hyphens_separated() {
-        assert!(ObjectService::is_valid_bucket_name("a-b-c-d").is_ok());
-    }
-
-    #[test]
-    fn valid_mixed_alphanumeric_and_hyphens() {
-        assert!(ObjectService::is_valid_bucket_name("my-bucket-123").is_ok());
-    }
-
-    // --- length ---
-
-    #[test]
-    fn invalid_too_short_one_char() {
-        assert!(ObjectService::is_valid_bucket_name("a").is_err());
-    }
-
-    #[test]
-    fn invalid_too_short_two_chars() {
-        assert!(ObjectService::is_valid_bucket_name("ab").is_err());
-    }
-
-    #[test]
-    fn invalid_empty() {
-        assert!(ObjectService::is_valid_bucket_name("").is_err());
-    }
-
-    #[test]
-    fn invalid_too_long() {
-        assert!(ObjectService::is_valid_bucket_name(&"a".repeat(64)).is_err());
-    }
-
-    // --- leading / trailing hyphen ---
-
-    #[test]
-    fn invalid_leading_hyphen() {
-        assert!(ObjectService::is_valid_bucket_name("-bucket").is_err());
-    }
-
-    #[test]
-    fn invalid_trailing_hyphen() {
-        assert!(ObjectService::is_valid_bucket_name("bucket-").is_err());
-    }
-
-    #[test]
-    fn invalid_leading_and_trailing_hyphen() {
-        assert!(ObjectService::is_valid_bucket_name("-bucket-").is_err());
-    }
-
-    // --- double hyphen ---
-
-    #[test]
-    fn invalid_double_hyphen_middle() {
-        assert!(ObjectService::is_valid_bucket_name("my--bucket").is_err());
-    }
-
-    #[test]
-    fn invalid_double_hyphen_start() {
-        assert!(ObjectService::is_valid_bucket_name("--bucket").is_err());
-    }
-
-    #[test]
-    fn invalid_triple_hyphen() {
-        assert!(ObjectService::is_valid_bucket_name("my---bucket").is_err());
-    }
-
-    // --- invalid characters ---
-
-    #[test]
-    fn invalid_uppercase() {
-        assert!(ObjectService::is_valid_bucket_name("MyBucket").is_err());
-    }
-
-    #[test]
-    fn invalid_all_uppercase() {
-        assert!(ObjectService::is_valid_bucket_name("BUCKET").is_err());
-    }
-
-    #[test]
-    fn invalid_underscore() {
-        assert!(ObjectService::is_valid_bucket_name("my_bucket").is_err());
-    }
-
-    #[test]
-    fn invalid_dot() {
-        assert!(ObjectService::is_valid_bucket_name("my.bucket").is_err());
-    }
-
-    #[test]
-    fn invalid_space() {
-        assert!(ObjectService::is_valid_bucket_name("my bucket").is_err());
-    }
-
-    #[test]
-    fn invalid_unicode() {
-        assert!(ObjectService::is_valid_bucket_name("mü-bucket").is_err());
-    }
-
-    #[test]
-    fn invalid_slash() {
-        assert!(ObjectService::is_valid_bucket_name("my/bucket").is_err());
-    }
 }
