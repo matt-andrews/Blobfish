@@ -3,10 +3,19 @@ set -euo pipefail
 
 bash run.sh
 
-until [ "$(curl -s -o /dev/null -w "%{http_code}" localhost:31415/readyz)" == "200" ]; do
-  echo "Waiting for 200 response..."
-  sleep 5
-done
+
+ readiness_timeout=60
+ readiness_interval=5
+ readiness_start=$SECONDS
+
+ until [ "$(curl -s -o /dev/null -w "%{http_code}" localhost:31415/readyz)" == "200" ]; do
+   if (( SECONDS - readiness_start >= readiness_timeout )); then
+     echo "Service did not become ready within ${readiness_timeout} seconds."
+     exit 1
+   fi
+   echo "Waiting for 200 response..."
+      sleep "$readiness_interval"
+    done
 
 #first put is create
 status_code=$(curl -X PUT -s -o /dev/null -w "%{http_code}" localhost:31415/buckets/photos)
