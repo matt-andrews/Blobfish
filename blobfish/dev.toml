@@ -2,7 +2,7 @@
 cluster_id   = "dev-cluster"
 node_id      = "auto"          # generate UUID on first boot, persist to node.json
 bind_addr    = "0.0.0.0:8080"
-storage_root = "/data/blobfish"
+storage_root = "./"
 
 [storage]
 chunk_size_bytes    = 8388608  # 8 MiB

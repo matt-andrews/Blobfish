@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use crate::bucket::Bucket;
-use crate::errors::{ApiError};
 use crate::types::DbResult;
 
 #[derive(Clone)]
@@ -13,16 +12,13 @@ impl ObjectService{
             repository,
         }
     }
-    pub async fn put_bucket(&self, bucket: &Bucket) -> Result<DbResult, ApiError>{
+    pub async fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<DbResult>{
         bucket.validate_name()?;
         let owned_rep = Arc::clone(&self.repository);
         let owned_bucket = bucket.to_owned();
-        match tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             return owned_rep.put_bucket(&owned_bucket);
-        }).await{
-            Ok(v) => Ok(v?),
-            Err(e) => Err(ApiError::Internal(anyhow::Error::from(e)))
-        }
+        }).await?
     }
     pub async fn get_bucket(&self, name: &str) -> anyhow::Result<Option<Bucket>>{
         let owned_rep = Arc::clone(&self.repository);

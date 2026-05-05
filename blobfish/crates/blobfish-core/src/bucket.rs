@@ -1,3 +1,4 @@
+use anyhow::Error;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use crate::errors::BucketError;
@@ -23,7 +24,7 @@ impl Bucket {
     /*
     * Valid bucket name: 3–63 chars. [a-z0-9] and - only. No leading -, no trailing -, no --.
     */
-    pub fn validate_name(&self) -> Result<(), BucketError>{
+    pub fn validate_name(&self) -> anyhow::Result<()>{
         let name = self.name();
         let len = name.len();
         if len >= 3 && len <= 63
@@ -34,7 +35,8 @@ impl Bucket {
         {
             return Ok(());
         }
-        Err(BucketError::InvalidBucketName(name.to_string()))
+
+        Err(Error::from(BucketError::InvalidBucketName(self.name.clone())))
     }
 }
 
