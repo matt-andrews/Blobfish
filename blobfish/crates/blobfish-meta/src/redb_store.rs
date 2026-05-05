@@ -1,6 +1,6 @@
 use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 use blobfish_core::bucket::Bucket;
-use blobfish_core::object_service::Repository;
+use blobfish_core::object_service::MetadataStore;
 use blobfish_core::types::DbResult;
 
 const BUCKETS: TableDefinition<&str, &[u8]> = TableDefinition::new("buckets");
@@ -17,13 +17,14 @@ impl RedDbStore {
     }
 }
 
-impl Repository for RedDbStore{
+impl MetadataStore for RedDbStore{
     fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<DbResult> {
         let bytes = serde_json::to_vec(bucket)?;
         let txn = self.db.begin_write()?;
         let result = {
             let mut table = txn.open_table(BUCKETS)?;
             let exists = table.get(bucket.name())?.is_some();
+            //we should use the exists check to make sure that created_on persists when update
             table.insert(bucket.name(), bytes.as_slice())?;
             if exists {
                 DbResult::Updated

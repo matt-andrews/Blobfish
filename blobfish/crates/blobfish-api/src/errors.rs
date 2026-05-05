@@ -17,12 +17,15 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, message) = match &self {
             ApiError::Internal(err) => {
-                tracing::error!(error = %err, "Internal server error");
                 if let Some(bucket_err) = err.downcast_ref::<BucketError>() {
                     match bucket_err{
-                        BucketError::InvalidBucketName(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
+                        BucketError::InvalidBucketName(msg) => {
+                            tracing::warn!(error = %err, "Invalid bucket name");
+                            (StatusCode::BAD_REQUEST, msg.clone())
+                        },
                     }
                 } else {
+                    tracing::error!(error = %err, "Internal server error");
                     (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
                 }
             }

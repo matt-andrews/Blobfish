@@ -4,10 +4,10 @@ use crate::types::DbResult;
 
 #[derive(Clone)]
 pub struct ObjectService{
-    repository: Arc<dyn Repository>,
+    repository: Arc<dyn MetadataStore>,
 }
 impl ObjectService{
-    pub fn new(repository: Arc<dyn Repository>)-> Self {
+    pub fn new(repository: Arc<dyn MetadataStore>) -> Self {
         Self{
             repository,
         }
@@ -56,7 +56,7 @@ impl ObjectService{
 
 
 }
-pub trait Repository: Send + Sync{
+pub trait MetadataStore: Send + Sync{
     fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<DbResult>;
     fn get_bucket(&self, name: &str) -> anyhow::Result<Option<Bucket>>;
     fn get_all_buckets(&self) -> anyhow::Result<Vec<String>>;
