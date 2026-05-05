@@ -19,16 +19,18 @@ impl RedDbStore {
 
 impl Repository for RedDbStore{
     fn put_bucket(&self, bucket: &Bucket) -> anyhow::Result<DbResult> {
-        let mut result: DbResult = DbResult::Created;
-        if self.does_bucket_exist(bucket.name())?{
-            result = DbResult::Updated;
-        }
         let bytes = serde_json::to_vec(bucket)?;
         let txn = self.db.begin_write()?;
-        {
+        let result = {
             let mut table = txn.open_table(BUCKETS)?;
+            let exists = table.get(bucket.name())?.is_some();
             table.insert(bucket.name(), bytes.as_slice())?;
-        }
+            if exists {
+                DbResult::Updated
+            } else {
+                DbResult::Created
+            }
+        };
         txn.commit()?;
         Ok(result)
     }
@@ -57,16 +59,16 @@ impl Repository for RedDbStore{
     }
 
     fn delete_bucket(&self, name: &str) -> anyhow::Result<DbResult> {
-        if !self.does_bucket_exist(name)?{
-            return Ok(DbResult::NotFound)
-        }
         let txn = self.db.begin_write()?;
-        {
+        let result = {
             let mut table = txn.open_table(BUCKETS)?;
-            table.remove(name)?;
-        }
+            match table.remove(name)? {
+                Some(_) => DbResult::Deleted,
+                None => DbResult::NotFound,
+            }
+        };
         txn.commit()?;
-        Ok(DbResult::Deleted)
+        Ok(result)
     }
 
     fn does_bucket_exist(&self, name: &str) -> anyhow::Result<bool> {
@@ -77,7 +79,6 @@ impl Repository for RedDbStore{
 
     fn health_check(&self) -> anyhow::Result<bool> {
         self.db.begin_read()?;
-        self.db.begin_write()?;
         Ok(true)
     }
 }
