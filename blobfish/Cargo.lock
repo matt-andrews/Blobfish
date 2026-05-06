@@ -182,8 +182,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "blobfish-core",
+ "chrono",
  "redb",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -1090,6 +1092,7 @@ checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
 dependencies = [
  "getrandom",
  "js-sys",
+ "serde_core",
  "wasm-bindgen",
 ]
 

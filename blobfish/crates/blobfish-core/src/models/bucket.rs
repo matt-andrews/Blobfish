@@ -1,18 +1,20 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::errors::BucketError;
+use crate::errors::AppError;
+use crate::types::VersioningMode;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bucket{
     pub name: String,
     pub created_at: DateTime<Utc>,
-    //versioning: VersioningMode,
+    versioning: VersioningMode,
 }
 impl Bucket {
     pub fn new(name: &str) -> Self {
         Self{
             name: name.to_string(),
             created_at: Utc::now(),
+            versioning: VersioningMode::Immutable
         }
     }
 
@@ -23,7 +25,7 @@ impl Bucket {
     /*
     * Valid bucket name: 3–63 chars. [a-z0-9] and - only. No leading -, no trailing -, no --.
     */
-    pub fn validate_name(&self) -> Result<(), BucketError>{
+    pub fn validate_name(&self) -> Result<(), AppError>{
         let name = self.name();
         let len = name.len();
         if len >= 3 && len <= 63
@@ -35,7 +37,7 @@ impl Bucket {
             return Ok(());
         }
 
-        Err(BucketError::InvalidBucketName(self.name.clone()))
+        Err(AppError::InvalidBucketName(self.name.clone()))
     }
 }
 

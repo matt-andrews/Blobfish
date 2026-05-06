@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 pub enum DbResult{
     Created,
     Updated,
@@ -5,6 +7,12 @@ pub enum DbResult{
     NotFound,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NodeStatus{
-    Ok
+    Ok,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum VersioningMode{
+    Immutable,
 }

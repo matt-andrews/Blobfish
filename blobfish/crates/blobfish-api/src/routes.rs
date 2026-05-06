@@ -4,7 +4,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use tracing::warn;
 use blobfish_core::object_service::ObjectService;
-use crate::buckets_handler;
+use crate::{buckets_handler, object_handler};
 use crate::errors::ApiError;
 
 pub fn router(object_service: ObjectService) -> Router {
@@ -13,6 +13,7 @@ pub fn router(object_service: ObjectService) -> Router {
         .route("/readyz", get(readyz));
 
     router = buckets_handler::router(router);
+    router = object_handler::router(router);
 
     router
         .with_state(object_service)

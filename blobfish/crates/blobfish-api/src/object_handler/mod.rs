@@ -6,10 +6,10 @@ mod handler;
 
 pub fn router(router: Router<ObjectService>) -> Router<ObjectService> {
     router
-        /*.route("/buckets", get(handlers::get_buckets))
-        .route( "/buckets/{bucket}"
-                ,put(handlers::put_bucket)
-                    .delete(crate::buckets_handler::handlers::delete_bucket)
-                    .get(crate::buckets_handler::handlers::get_bucket)
-        )*/
+        .route( "/objects/{bucket}/{*key}"
+                ,put(handler::put_object)
+                    .delete(handler::delete_object)
+                    .get(handler::get_object)
+                    .head(handler::head_object)
+        )
 }
