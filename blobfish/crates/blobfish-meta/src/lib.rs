@@ -6,6 +6,6 @@ use crate::redb_store::RedDbStore;
 mod redb_store;
 
 pub fn init(config: Config) -> anyhow::Result<impl MetadataStore>{
-    let db = Database::create(config.metadata.path)?;
+    let db = Database::create(config.metadata.path.clone())?;
     RedDbStore::new(db)
 }

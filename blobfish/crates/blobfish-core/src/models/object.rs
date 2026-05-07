@@ -72,12 +72,12 @@ pub struct ObjectVersion {
 }
 
 impl ObjectVersion{
-    pub fn new(key_id: Uuid) -> Self{
+    pub fn new(key_id: Uuid, content_type: &str) -> Self{
         Self{
             version_id: Uuid::new_v4(),
             key: key_id,
             size_bytes: 0,
-            content_type: Some("application/octet-stream".to_string()),
+            content_type: Some(content_type.to_string()),
             checksum_sha256: "".to_string(),
             created_at: Utc::now(),
             chunks: vec![],
@@ -92,8 +92,18 @@ pub struct ChunkDescriptor {
     pub offset: u64,
     pub size_bytes: u64,
     pub checksum_sha256: String,
-    pub node_id: NodeId,
-    pub local_path: PathBuf,
+}
+
+impl ChunkDescriptor{
+    pub fn new() -> Self{
+        Self{
+            chunk_id: Uuid::new_v4(),
+            ordinal: 0,
+            offset: 0,
+            size_bytes: 0,
+            checksum_sha256: String::new(),
+        }
+    }
 }
 
 #[cfg(test)]

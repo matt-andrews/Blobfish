@@ -119,6 +119,11 @@ impl MetadataStore for RedDbStore{
         Self::get_version(&txn, &key_obj)
     }
 
+    fn get_object_chunks(&self, obj: ObjectVersion) -> anyhow::Result<Vec<ChunkDescriptor>> {
+        let txn = self.db.begin_read()?;
+        Ok(Self::get_chunks(&txn, &obj)?)
+    }
+
     fn delete_object(&self, key: &str, bucket: &str) -> anyhow::Result<DbResult> {
         let txn = self.db.begin_write()?;
         let mut key_obj = Self::get_key_write(&txn, &key, &bucket)?;
@@ -165,6 +170,18 @@ impl RedDbStore{
             Some(guard) => Ok(serde_json::from_slice(guard.value())?),
             None => Err(anyhow::Error::from(AppError::ObjectNotFound(key.key().to_string()))),
         }
+    }
+
+    fn get_chunks(txn: &ReadTransaction, obj: &ObjectVersion) -> anyhow::Result<Vec<ChunkDescriptor>>{
+        let table = txn.open_table(CHUNKS)?;
+        obj.chunks
+            .iter()
+            .map(|id| -> anyhow::Result<ChunkDescriptor> {
+                let guard = table.get(id.as_bytes())?
+                    .ok_or_else(|| AppError::ObjectNotFound(id.to_string()))?;
+                Ok(serde_json::from_slice(guard.value())?)
+            })
+            .collect::<Result<Vec<_>, _>>()
     }
 
     fn put_object_key(txn: &WriteTransaction, key: &ObjectKey) -> anyhow::Result<DbResult>{

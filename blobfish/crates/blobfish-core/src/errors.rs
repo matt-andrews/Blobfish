@@ -17,4 +17,7 @@ pub enum AppError {
 
     #[error("Object name is invalid: {0}... Valid object name: 1–1024 bytes (UTF-8 encoded). No null bytes. Leading/trailing whitespace is an error. Everything else is allowed including unicode.")]
     InvalidObjectName(String),
+
+    #[error("Object is not valid: {0}")]
+    InvalidObject(String),
 }
