@@ -12,6 +12,7 @@ pub enum AppError {
     #[error("Object not found: {0}")]
     ObjectNotFound(String),
 
+    /// returns 404
     #[error("Object has been deleted: {0}")]
     ObjectDeleted(String),
 

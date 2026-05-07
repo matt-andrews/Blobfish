@@ -9,7 +9,7 @@ RUN cargo build --release --bin blobfish
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN useradd -m blobfish
-RUN mkdir -p /data/blobfish && chown -R blobfish:blobfish /data/blobfish
+RUN mkdir -p /data/blobfish/chunks && chown -R blobfish:blobfish /data/blobfish
 USER blobfish
 WORKDIR /app
 COPY --from=builder /app/target/release/blobfish /usr/local/bin/blobfish

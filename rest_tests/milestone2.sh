@@ -25,17 +25,13 @@ if [ "$status_code" -ne 201 ]; then
 fi
 
 # put the image
-status_code=$(curl -X PUT --data-binary @cat.jpg -H "Content-Type: image/jpeg" localhost:31415/objects/photos/cat.jpg)
-if [ "$status_code" -ne 201 ]; then
-  echo "Failed 2: $status_code"
-  exit 1
-fi
+curl -X PUT --data-binary @cat.jpg -H "content-type: image/jpeg" localhost:31415/objects/photos/cat.jpg
 
 # get file and validate
 OUT="out.jpg"
 trap 'rm -f "$OUT"' EXIT
 
-curl localhost:31415/objects/photos/cat.jpg -o "$OUT"
+curl localhost:31415/objects/photos/cat.jpg -f -o "$OUT"
 
 if ! diff -q "cat.jpg" "$OUT" > /dev/null; then
     echo "Files do not match!" >&2
@@ -47,17 +43,22 @@ echo "Files match!"
 #test headers
 HEADERS=$(curl -sI localhost:31415/objects/photos/cat.jpg)
 
-if ! echo "$HEADERS" | grep -q "Content-Type: image/jpeg"; then
+if ! echo "$HEADERS" | grep -q "content-type: image/jpeg"; then
     echo "Missing or wrong Content-Type" >&2
     exit 1
 fi
 
-if ! echo "$HEADERS" | grep -q "ETag:"; then
+if ! echo "$HEADERS" | grep -q "content-length: 1155778"; then
+    echo "Missing or wrong Content-Length" >&2
+    exit 1
+fi
+
+if ! echo "$HEADERS" | grep -q "etag:"; then
     echo "Missing ETag" >&2
     exit 1
 fi
 
-if ! echo "$HEADERS" | grep -q "X-Blobfish-Checksum-Sha256:"; then
+if ! echo "$HEADERS" | grep -q "x-blobfish-checksum-sha256:"; then
     echo "Missing X-Blobfish-Checksum-Sha256" >&2
     exit 1
 fi

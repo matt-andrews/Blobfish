@@ -134,7 +134,7 @@ impl MetadataStore for RedDbStore{
         let result = Self::put_object_key(&txn, &key_obj)?;
         txn.commit()?;
 
-        Ok(result)
+        Ok(DbResult::Deleted)
     }
 
 }
@@ -150,18 +150,30 @@ impl RedDbStore{
 
     fn get_key_write(txn: &WriteTransaction, key: &str, bucket: &str) -> anyhow::Result<ObjectKey>{
         let table = txn.open_table(OBJECT_KEYS)?;
-        match table.get(Self::get_key(&key, &bucket).as_str())? {
+        let result: ObjectKey = match table.get(Self::get_key(&key, &bucket).as_str())? {
             Some(guard) => Ok(serde_json::from_slice(guard.value())?),
             None => Err(anyhow::Error::from(AppError::ObjectNotFound(key.to_string()))),
+        }?;
+
+        if result.deleted_at.is_some(){
+            return Err(anyhow::Error::from(AppError::ObjectDeleted(key.to_string())));
         }
+
+        Ok(result)
     }
 
     fn get_key_read(txn: &ReadTransaction, key: &str, bucket: &str) -> anyhow::Result<ObjectKey>{
         let table = txn.open_table(OBJECT_KEYS)?;
-        match table.get(Self::get_key(&key, &bucket).as_str())? {
+        let result: ObjectKey = match table.get(Self::get_key(&key, &bucket).as_str())? {
             Some(guard) => Ok(serde_json::from_slice(guard.value())?),
             None => Err(anyhow::Error::from(AppError::ObjectNotFound(key.to_string()))),
+        }?;
+
+        if result.deleted_at.is_some(){
+            return Err(anyhow::Error::from(AppError::ObjectDeleted(key.to_string())));
         }
+
+        Ok(result)
     }
 
     fn get_version(txn: &ReadTransaction, key: &ObjectKey) -> anyhow::Result<ObjectVersion>{

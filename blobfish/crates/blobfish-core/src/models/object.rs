@@ -18,12 +18,12 @@ pub struct ObjectKey{
 }
 
 impl ObjectKey{
-    pub fn new(key: &str, bucket: &str) -> Self{
+    pub fn new(key: &str, bucket: &str, version_id: Uuid) -> Self{
         Self{
             key: key.to_string(),
             bucket: bucket.to_string(),
             key_id: Uuid::new_v4(),
-            current_version: Uuid::new_v4(),
+            current_version: version_id,
             deleted_at: None,
         }
     }
@@ -72,15 +72,15 @@ pub struct ObjectVersion {
 }
 
 impl ObjectVersion{
-    pub fn new(key_id: Uuid, content_type: &str) -> Self{
+    pub fn new(key_id: Uuid, content_type: &str, chunks: Vec<ChunkDescriptor>, version_id: Uuid) -> Self{
         Self{
-            version_id: Uuid::new_v4(),
+            version_id,
             key: key_id,
-            size_bytes: 0,
+            size_bytes: chunks.iter().map(|item| item.size_bytes).sum(),
             content_type: Some(content_type.to_string()),
             checksum_sha256: "".to_string(),
             created_at: Utc::now(),
-            chunks: vec![],
+            chunks: chunks.iter().map(|u| u.chunk_id).collect(),
         }
     }
 }
@@ -112,7 +112,7 @@ mod tests {
 
     // helper to reduce boilerplate
     fn make_key(key: &str) -> ObjectKey {
-        ObjectKey::new(key, "test-bucket")
+        ObjectKey::new(key, "test-bucket", Uuid::new_v4())
     }
 
     // --- valid cases ---

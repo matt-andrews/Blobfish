@@ -5,6 +5,7 @@ use axum::response::IntoResponse;
 use tokio::io::AsyncWriteExt;
 use tokio_util::io::{ReaderStream, StreamReader};
 use futures::TryStreamExt;
+use tracing::info;
 use blobfish_core::errors::AppError;
 use blobfish_core::models::object::ObjectVersion;
 use blobfish_core::object_service::ObjectService;
@@ -79,11 +80,12 @@ pub async fn put_object(
 
 fn data_to_header(data: ObjectVersion) -> HeaderMap{
     let mut result = HeaderMap::new();
-    result.insert("ETag", "\"{data.version_id.to_string()}\"".parse().unwrap());
-    result.insert("X-Blobfish-Checksum-Sha256", data.checksum_sha256.parse().unwrap());
-    result.insert("Content-Length", data.size_bytes.to_string().parse().unwrap());
+    let etag = data.version_id.to_string();
+    result.insert("etag", format!("\"{}\"", etag).parse().unwrap());
+    result.insert("x-blobfish-checksum-sha256", data.checksum_sha256.parse().unwrap());
+    result.insert("content-length", data.size_bytes.to_string().parse().unwrap());
     if data.content_type.is_some() {
-        result.insert("Content-Type", data.content_type.unwrap().to_string().parse().unwrap());
+        result.insert("content-type", data.content_type.unwrap().to_string().parse().unwrap());
     }
     result
 }

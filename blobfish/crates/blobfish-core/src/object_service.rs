@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use uuid::Uuid;
 use crate::models::bucket::Bucket;
 use crate::models::config::{Config, StorageConfig};
 use crate::models::object::{ChunkDescriptor, ObjectKey, ObjectVersion};
@@ -66,8 +67,9 @@ impl ObjectService{
         chunks: Vec<ChunkDescriptor>
     ) -> anyhow::Result<DbResult>{
         let owned_rep = Arc::clone(&self.repository);
-        let key_obj = ObjectKey::new(key, bucket);
-        let version = ObjectVersion::new(key_obj.key_id, content_type);
+        let version_id = Uuid::new_v4();
+        let key_obj = ObjectKey::new(key, bucket, version_id);
+        let version = ObjectVersion::new(key_obj.key_id, content_type, chunks.clone(), version_id);
         tokio::task::spawn_blocking(move || {
             owned_rep.put_object(key_obj, version, chunks)
         }).await?

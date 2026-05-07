@@ -17,17 +17,20 @@ impl StorageService {
     pub async fn write_to_disk(&self, mut reader: impl AsyncRead + Unpin, key: &str) -> anyhow::Result<Vec<ChunkDescriptor>>{
         let mut result: Vec<ChunkDescriptor> = vec![];
 
-        let working = ChunkDescriptor::new();
-        result.push(working);
+        let mut working = ChunkDescriptor::new();
 
         let mut path = self.full_dir.clone();
-        path.push(key.to_string());
+        path.push(working.chunk_id.to_string());
 
-        let mut file = tokio::fs::File::create(path).await
+        let mut file = File::create(path).await
             .map_err(|_| anyhow::Error::from(AppError::InvalidObject(key.to_string())))?;
 
-        tokio::io::copy(&mut reader, &mut file).await
+        let content_length = tokio::io::copy(&mut reader, &mut file).await
             .map_err(|_| anyhow::Error::from(AppError::InvalidObject(key.to_string())))?;
+
+        working.size_bytes = content_length;
+
+        result.push(working.clone());
 
         Ok(result)
     }
