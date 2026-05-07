@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use uuid::Uuid;
 use crate::models::bucket::Bucket;
-use crate::models::config::{Config, StorageConfig};
+use crate::models::config::{Config};
 use crate::models::object::{ChunkDescriptor, ObjectKey, ObjectVersion};
 use crate::storage_service::StorageService;
 use crate::types::DbResult;

@@ -1,7 +1,5 @@
-use std::io::Read;
 use chrono::Utc;
-use redb::{Database, Error, ReadTransaction, ReadableDatabase, ReadableTable, TableDefinition, WriteTransaction};
-use uuid::Uuid;
+use redb::{Database, ReadTransaction, ReadableDatabase, ReadableTable, Table, TableDefinition, WriteTransaction};
 use blobfish_core::errors::AppError;
 use blobfish_core::models::bucket::Bucket;
 use blobfish_core::models::object::{ChunkDescriptor, ObjectKey, ObjectVersion};
@@ -111,17 +109,12 @@ impl MetadataStore for RedDbStore{
     fn get_object_data(&self, key: &str, bucket: &str) -> anyhow::Result<ObjectVersion>{
         let txn = self.db.begin_read()?;
 
-        if(!Self::does_object_exist(&txn, &key, &bucket)?){
+        if !Self::does_object_exist(&txn, &key, &bucket)?{
             return Err(anyhow::Error::from(AppError::ObjectNotFound(key.to_string())));
         }
 
         let key_obj = Self::get_key_read(&txn, &key, &bucket)?;
         Self::get_version(&txn, &key_obj)
-    }
-
-    fn get_object_chunks(&self, obj: ObjectVersion) -> anyhow::Result<Vec<ChunkDescriptor>> {
-        let txn = self.db.begin_read()?;
-        Ok(Self::get_chunks(&txn, &obj)?)
     }
 
     fn delete_object(&self, key: &str, bucket: &str) -> anyhow::Result<DbResult> {
@@ -131,10 +124,15 @@ impl MetadataStore for RedDbStore{
         //Set the deleted tag so we know this is deleted
         key_obj.deleted_at = Option::from(Utc::now());
 
-        let result = Self::put_object_key(&txn, &key_obj)?;
+        _ = Self::put_object_key(&txn, &key_obj)?;
         txn.commit()?;
 
         Ok(DbResult::Deleted)
+    }
+
+    fn get_object_chunks(&self, obj: ObjectVersion) -> anyhow::Result<Vec<ChunkDescriptor>> {
+        let txn = self.db.begin_read()?;
+        Ok(Self::get_chunks(&txn, &obj)?)
     }
 
 }
@@ -148,32 +146,27 @@ impl RedDbStore{
         Ok(table.get(Self::get_key(&key, &bucket).as_str())?.is_some())
     }
 
-    fn get_key_write(txn: &WriteTransaction, key: &str, bucket: &str) -> anyhow::Result<ObjectKey>{
-        let table = txn.open_table(OBJECT_KEYS)?;
-        let result: ObjectKey = match table.get(Self::get_key(&key, &bucket).as_str())? {
+    fn get_key_inner(table: &impl ReadableTable<&'static str, &'static [u8]>, key: &str, bucket: &str) -> anyhow::Result<ObjectKey> {
+        let result: ObjectKey = match table.get(Self::get_key(key, bucket).as_str())? {
             Some(guard) => Ok(serde_json::from_slice(guard.value())?),
             None => Err(anyhow::Error::from(AppError::ObjectNotFound(key.to_string()))),
         }?;
 
-        if result.deleted_at.is_some(){
+        if result.deleted_at.is_some() {
             return Err(anyhow::Error::from(AppError::ObjectDeleted(key.to_string())));
         }
 
         Ok(result)
     }
 
+    fn get_key_write(txn: &WriteTransaction, key: &str, bucket: &str) -> anyhow::Result<ObjectKey>{
+        let table : Table<&str, &[u8]> = txn.open_table(OBJECT_KEYS)?;
+        Self::get_key_inner(&table, key, bucket)
+    }
+
     fn get_key_read(txn: &ReadTransaction, key: &str, bucket: &str) -> anyhow::Result<ObjectKey>{
         let table = txn.open_table(OBJECT_KEYS)?;
-        let result: ObjectKey = match table.get(Self::get_key(&key, &bucket).as_str())? {
-            Some(guard) => Ok(serde_json::from_slice(guard.value())?),
-            None => Err(anyhow::Error::from(AppError::ObjectNotFound(key.to_string()))),
-        }?;
-
-        if result.deleted_at.is_some(){
-            return Err(anyhow::Error::from(AppError::ObjectDeleted(key.to_string())));
-        }
-
-        Ok(result)
+        Self::get_key_inner(&table, key, bucket)
     }
 
     fn get_version(txn: &ReadTransaction, key: &ObjectKey) -> anyhow::Result<ObjectVersion>{

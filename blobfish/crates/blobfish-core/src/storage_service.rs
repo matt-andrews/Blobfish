@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::AsyncRead;
 use crate::errors::AppError;
-use crate::models::config::{Config, StorageConfig};
+use crate::models::config::{Config};
 use crate::models::object::ChunkDescriptor;
 
 pub struct StorageService{

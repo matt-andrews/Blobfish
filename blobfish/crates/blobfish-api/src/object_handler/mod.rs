@@ -1,5 +1,5 @@
 use axum::Router;
-use axum::routing::{get, put};
+use axum::routing::{put};
 use blobfish_core::object_service::ObjectService;
 
 mod handler;

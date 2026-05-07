@@ -1,5 +1,4 @@
 use thiserror::Error;
-use uuid::Uuid;
 
 #[derive(Error, Debug)]
 pub enum AppError {
