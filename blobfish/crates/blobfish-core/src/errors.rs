@@ -19,5 +19,5 @@ pub enum AppError {
     InvalidObjectName(String),
 
     #[error("Object is not valid: {0}")]
-    InvalidObject(String),
+    InvalidObject(String, Option<String>),
 }

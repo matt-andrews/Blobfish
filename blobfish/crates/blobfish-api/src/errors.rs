@@ -39,8 +39,8 @@ impl IntoResponse for ApiError {
                             tracing::warn!(error = %err, "Object Deleted");
                             (StatusCode::NOT_FOUND, msg.clone())
                         },
-                        AppError::InvalidObject(msg) => {
-                            tracing::warn!(error = %err, "Object is Invalid");
+                        AppError::InvalidObject(msg, detail) => {
+                            tracing::warn!(error = %err, detail, "Object is Invalid");
                             (StatusCode::BAD_REQUEST, msg.clone())
                         },
                     }

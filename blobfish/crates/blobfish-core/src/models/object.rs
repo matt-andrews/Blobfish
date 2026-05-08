@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::errors::AppError;
+use hex;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObjectKey{
@@ -64,7 +66,7 @@ pub struct ObjectVersion {
     pub content_type: Option<String>,
     pub checksum_sha256: String,
     pub created_at: DateTime<Utc>,
-    pub chunks: Vec<Uuid>,
+    pub chunks: Vec<String>,
 }
 
 impl ObjectVersion{
@@ -74,31 +76,50 @@ impl ObjectVersion{
             key: key_id,
             size_bytes: chunks.iter().map(|item| item.size_bytes).sum(),
             content_type: Some(content_type.to_string()),
-            checksum_sha256: "".to_string(),
+            checksum_sha256: Self::compute_multipart_etag(&*chunks),
             created_at: Utc::now(),
-            chunks: chunks.iter().map(|u| u.chunk_id).collect(),
+            chunks: chunks.iter().map(|u| u.chunk_id.clone()).collect(),
         }
+    }
+    fn compute_multipart_etag(chunks: &[ChunkDescriptor]) -> String {
+        let mut combined = Vec::with_capacity(chunks.len() * 32);
+        for chunk in chunks {
+            combined.extend_from_slice(&chunk.sha256);
+        }
+
+        let final_hash = Sha256::digest(&combined);
+        format!("{}-{}", hex::encode(final_hash), chunks.len())
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChunkDescriptor {
-    pub chunk_id: Uuid,
+    pub chunk_id: String,
+    pub temp_id: Uuid,
     pub ordinal: u32,
     pub offset: u64,
     pub size_bytes: u64,
     pub checksum_sha256: String,
+    pub sha256: Vec<u8>
 }
 
 impl ChunkDescriptor{
     pub fn new() -> Self{
         Self{
-            chunk_id: Uuid::new_v4(),
+            chunk_id: String::new(),
+            temp_id: Uuid::new_v4(),
             ordinal: 0,
             offset: 0,
             size_bytes: 0,
             checksum_sha256: String::new(),
+            sha256: vec![]
         }
+    }
+    pub fn set(&mut self, hex: String, sha256: Vec<u8>, size: u64) -> anyhow::Result<()>{
+        self.sha256 = sha256.clone();
+        self.size_bytes = size;
+        self.chunk_id = hex;
+        Ok(())
     }
 }
 
@@ -296,5 +317,80 @@ mod tests {
         assert_eq!(key.len(), 1025);
         let err = make_key(&key).is_valid().unwrap_err();
         assert!(matches!(err, AppError::InvalidObjectName(msg) if msg == "too long"));
+    }
+
+    fn make_chunk(sha256: [u8; 32], size_bytes: u64) -> ChunkDescriptor {
+        ChunkDescriptor {
+            sha256: sha256.to_vec(),
+            size_bytes,
+            chunk_id: Uuid::new_v4().to_string(),
+            temp_id: Default::default(),
+            ordinal: 0,
+            offset: 0,
+            checksum_sha256: "".to_string(),
+        }
+    }
+
+    #[test]
+    fn single_chunk_has_suffix_of_one() {
+        let chunk = make_chunk([0xabu8; 32], 100);
+        let etag = ObjectVersion::compute_multipart_etag(&[chunk]);
+        assert!(etag.ends_with("-1"));
+    }
+
+    #[test]
+    fn suffix_reflects_chunk_count() {
+        let chunks: Vec<ChunkDescriptor> = (0..5)
+            .map(|i| make_chunk([i as u8; 32], 100))
+            .collect();
+        let etag = ObjectVersion::compute_multipart_etag(&chunks);
+        assert!(etag.ends_with("-5"));
+    }
+
+    #[test]
+    fn hash_portion_is_valid_hex_of_32_bytes() {
+        let chunks = vec![make_chunk([0x11u8; 32], 100), make_chunk([0x22u8; 32], 100)];
+        let etag = ObjectVersion::compute_multipart_etag(&chunks);
+        let hash_part = etag.split('-').next().unwrap();
+        assert_eq!(hash_part.len(), 64); // 32 bytes = 64 hex chars
+        assert!(hash_part.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn same_chunks_same_order_produces_same_etag() {
+        let chunks = vec![make_chunk([0x01u8; 32], 100), make_chunk([0x02u8; 32], 200)];
+        let etag1 = ObjectVersion::compute_multipart_etag(&chunks);
+        let etag2 = ObjectVersion::compute_multipart_etag(&chunks);
+        assert_eq!(etag1, etag2);
+    }
+
+    #[test]
+    fn different_chunk_order_produces_different_etag() {
+        let chunk_a = make_chunk([0x01u8; 32], 100);
+        let chunk_b = make_chunk([0x02u8; 32], 100);
+        let etag_ab = ObjectVersion::compute_multipart_etag(&[chunk_a.clone(), chunk_b.clone()]);
+        let etag_ba = ObjectVersion::compute_multipart_etag(&[chunk_b, chunk_a]);
+        assert_ne!(etag_ab, etag_ba);
+    }
+
+    #[test]
+    fn different_chunk_content_produces_different_etag() {
+        let chunks_a = vec![make_chunk([0x01u8; 32], 100)];
+        let chunks_b = vec![make_chunk([0x02u8; 32], 100)];
+        assert_ne!(
+            ObjectVersion::compute_multipart_etag(&chunks_a),
+            ObjectVersion::compute_multipart_etag(&chunks_b)
+        );
+    }
+
+    #[test]
+    fn known_value_regression() {
+        // sha256([0x01; 32] ++ [0x02; 32]) computed externally, locked in as regression
+        let chunks = vec![make_chunk([0x01u8; 32], 100), make_chunk([0x02u8; 32], 100)];
+        let etag = ObjectVersion::compute_multipart_etag(&chunks);
+        assert_eq!(
+            etag,
+            "f818afd37a6dc3bc92fb44731011277006db4efa6e9023cd7468c02335d22a4d-2"
+        );
     }
 }

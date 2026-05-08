@@ -16,6 +16,9 @@ bash run.sh
       sleep "$readiness_interval"
     done
 
+# delete any trailing data that could break the tests
+curl -X POST localhost:31415/detachz
+
 #
 # create bucket
 status_code=$(curl -X PUT -s -o /dev/null -w "%{http_code}" localhost:31415/buckets/photos)
@@ -24,6 +27,7 @@ if [ "$status_code" -ne 201 ]; then
   exit 1
 fi
 
+echo "putting image";
 # put the image
 curl -X PUT --data-binary @cat.jpg -H "content-type: image/jpeg" localhost:31415/objects/photos/cat.jpg
 
@@ -31,6 +35,7 @@ curl -X PUT --data-binary @cat.jpg -H "content-type: image/jpeg" localhost:31415
 OUT="out.jpg"
 trap 'rm -f "$OUT"' EXIT
 
+echo "getting image";
 curl localhost:31415/objects/photos/cat.jpg -f -o "$OUT"
 
 if ! diff -q "cat.jpg" "$OUT" > /dev/null; then
@@ -41,7 +46,7 @@ fi
 echo "Files match!"
 
 #test headers
-HEADERS=$(curl -sI localhost:31415/objects/photos/cat.jpg)
+HEADERS=$(curl -sI -X GET localhost:31415/objects/photos/cat.jpg)
 
 if ! echo "$HEADERS" | grep -q "content-type: image/jpeg"; then
     echo "Missing or wrong Content-Type" >&2
@@ -53,12 +58,12 @@ if ! echo "$HEADERS" | grep -q "content-length: 1155778"; then
     exit 1
 fi
 
-if ! echo "$HEADERS" | grep -q "etag:"; then
+if ! echo "$HEADERS" | grep -q 'etag: "39803b7116614c984b763b8a35a8c751c9816813d2737742230fa4be1e5d7ac1-1"'; then
     echo "Missing ETag" >&2
     exit 1
 fi
 
-if ! echo "$HEADERS" | grep -q "x-blobfish-checksum-sha256:"; then
+if ! echo "$HEADERS" | grep -q "x-blobfish-sha256: 1c9cd40b037bbac4f4b236de657bab130200bb037c5df01372cc72b10144d7ab"; then
     echo "Missing X-Blobfish-Checksum-Sha256" >&2
     exit 1
 fi

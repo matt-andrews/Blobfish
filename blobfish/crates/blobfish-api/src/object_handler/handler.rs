@@ -5,7 +5,7 @@ use axum::response::IntoResponse;
 use tokio_util::io::{ReaderStream, StreamReader};
 use futures::TryStreamExt;
 use blobfish_core::errors::AppError;
-use blobfish_core::models::object::ObjectVersion;
+use blobfish_core::models::object::{ChunkDescriptor, ObjectVersion};
 use blobfish_core::object_service::ObjectService;
 use blobfish_core::types::DbResult;
 use crate::errors::ApiError;
@@ -16,9 +16,9 @@ pub async fn get_object(
 ) -> Result<impl IntoResponse, ApiError> {
     let data = state.get_object_data(&key, &bucket).await?;
     let chunks = state.get_object_chunks(data.clone()).await?;
-    let stream = state.storage_service.read_from_disk(chunks, &key).await?;
+    let stream = state.storage_service.read_from_disk(chunks.clone(), &key).await?;
     let body = Body::from_stream(ReaderStream::new(stream));
-    Ok((StatusCode::OK, (data_to_header(data), body)))
+    Ok((StatusCode::OK, (data_to_header(data, Option::from(chunks)), body)))
 }
 
 pub async fn head_object(
@@ -26,7 +26,7 @@ pub async fn head_object(
     Path((bucket, key)): Path<(String, String)>
 ) -> Result<impl IntoResponse, ApiError> {
     let data = state.get_object_data(&key, &bucket).await?;
-    Ok((StatusCode::OK, (data_to_header(data), ())))
+    Ok((StatusCode::OK, (data_to_header(data, None), ())))
 }
 
 pub async fn delete_object(
@@ -47,7 +47,7 @@ pub async fn put_object(
 
     let Path((bucket, key)) = Path::<(String, String)>::from_request_parts(&mut parts, &state)
         .await
-        .map_err(|e| ApiError::Internal(anyhow::Error::from(AppError::InvalidObject(e.to_string()))))?;
+        .map_err(|e| ApiError::Internal(anyhow::Error::from(AppError::InvalidObject(e.to_string(), Option::from(e.to_string())))))?;
 
 
     let content_type = &parts
@@ -65,23 +65,25 @@ pub async fn put_object(
         &key,
         &bucket,
         content_type.to_str().unwrap(),
-        chunks
+        chunks.clone()
     ).await?{
         DbResult::Created => Ok(StatusCode::CREATED),
         DbResult::Updated => Ok(StatusCode::OK),
-        _ => Err(ApiError::Internal(anyhow::Error::from(AppError::InvalidObject(key.to_string()))))
+        _ => Err(ApiError::Internal(anyhow::Error::from(AppError::InvalidObject(key.to_string(), Option::from("not db created or updated".to_string())))))
     }?;
 
     let data = state.get_object_data(&key, &bucket).await?;
-    Ok((status, data_to_header(data), ()))
+    Ok((status, data_to_header(data, Option::from(chunks)), ()))
 }
 
-fn data_to_header(data: ObjectVersion) -> HeaderMap{
+fn data_to_header(data: ObjectVersion, chunks: Option<Vec<ChunkDescriptor>>) -> HeaderMap{
     let mut result = HeaderMap::new();
-    let etag = data.version_id.to_string();
-    result.insert("etag", format!("\"{}\"", etag).parse().unwrap());
-    result.insert("x-blobfish-checksum-sha256", data.checksum_sha256.parse().unwrap());
+    result.insert("etag", format!("\"{}\"", data.checksum_sha256).parse().unwrap());
     result.insert("content-length", data.size_bytes.to_string().parse().unwrap());
+    if chunks.is_some(){
+        let full_sha: String = chunks.unwrap().iter().map(|i| i.chunk_id.clone()).collect();
+        result.insert("x-blobfish-sha256", full_sha.parse().unwrap());
+    }
     if data.content_type.is_some() {
         result.insert("content-type", data.content_type.unwrap().to_string().parse().unwrap());
     }

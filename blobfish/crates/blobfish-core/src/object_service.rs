@@ -96,6 +96,12 @@ impl ObjectService{
             owned_rep.delete_object(&owned_key, &owned_bucket)
         }).await?
     }
+    pub async fn detach(&self) -> anyhow::Result<DbResult>{
+        let owned_rep = Arc::clone(&self.repository);
+        tokio::task::spawn_blocking(move || {
+            owned_rep.detach()
+        }).await?
+    }
 
 }
 pub trait MetadataStore: Send + Sync{
@@ -114,4 +120,5 @@ pub trait MetadataStore: Send + Sync{
     fn get_object_data(&self, key: &str, bucket: &str) -> anyhow::Result<ObjectVersion>;
     fn delete_object(&self, key: &str, bucket: &str) -> anyhow::Result<DbResult>;
     fn get_object_chunks(&self, obj: ObjectVersion) -> anyhow::Result<Vec<ChunkDescriptor>>;
+    fn detach(&self) -> anyhow::Result<DbResult>;
 }

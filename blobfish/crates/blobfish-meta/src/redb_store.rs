@@ -1,5 +1,6 @@
 use chrono::Utc;
 use redb::{Database, ReadTransaction, ReadableDatabase, ReadableTable, Table, TableDefinition, WriteTransaction};
+use tracing::info;
 use blobfish_core::errors::AppError;
 use blobfish_core::models::bucket::Bucket;
 use blobfish_core::models::object::{ChunkDescriptor, ObjectKey, ObjectVersion};
@@ -9,7 +10,7 @@ use blobfish_core::types::DbResult;
 const BUCKETS: TableDefinition<&str, &[u8]> = TableDefinition::new("buckets");
 const OBJECT_KEYS: TableDefinition<&str, &[u8]> = TableDefinition::new("object_keys");
 const OBJECT_VERSIONS: TableDefinition<[u8; 16], &[u8]> = TableDefinition::new("object_versions");
-const CHUNKS: TableDefinition<[u8; 16], &[u8]> = TableDefinition::new("chunks");
+const CHUNKS: TableDefinition<&str, &[u8]> = TableDefinition::new("chunks");
 pub struct RedDbStore{
     db: Database,
 }
@@ -18,6 +19,9 @@ impl RedDbStore {
     pub fn new(db: Database) -> anyhow::Result<Self> {
         let txn = db.begin_write()?;
         txn.open_table(BUCKETS)?;
+        txn.open_table(OBJECT_KEYS)?;
+        txn.open_table(OBJECT_VERSIONS)?;
+        txn.open_table(CHUNKS)?;
         txn.commit()?;
         Ok(Self { db })
     }
@@ -135,6 +139,45 @@ impl MetadataStore for RedDbStore{
         Ok(Self::get_chunks(&txn, &obj)?)
     }
 
+    fn detach(&self) -> anyhow::Result<DbResult> {
+        let txn = self.db.begin_write()?;
+
+        {
+            info!("draining buckets");
+            let mut buckets = txn.open_table(BUCKETS)?;
+            let keys: Vec<_> = buckets.iter()?.map(|r| r.unwrap().0.value().to_owned()).collect();
+            for key in keys {
+                buckets.remove(key.as_str())?;
+            }
+
+            info!("draining keys");
+            let mut object_keys = txn.open_table(OBJECT_KEYS)?;
+            let keys: Vec<_> = object_keys.iter()?.map(|r| r.unwrap().0.value().to_owned()).collect();
+            for key in keys {
+                object_keys.remove(key.as_str())?;
+            }
+
+            info!("draining versions");
+            let mut object_versions = txn.open_table(OBJECT_VERSIONS)?;
+            let keys: Vec<_> = object_versions.iter()?.map(|r| r.unwrap().0.value().to_owned()).collect();
+            for key in keys {
+                object_versions.remove(key)?;
+            }
+
+            info!("draining chunks");
+            let mut chunks = txn.open_table(CHUNKS)?;
+            let keys: Vec<_> = chunks.iter()?.map(|r| r.unwrap().0.value().to_owned()).collect();
+            for key in keys {
+                chunks.remove(key.as_str())?;
+            }
+        }
+
+        info!("committing");
+        txn.commit()?;
+
+        Ok(DbResult::Deleted)
+    }
+
 }
 impl RedDbStore{
     //i dont like this a whole lot - maybe should refactor?
@@ -182,7 +225,7 @@ impl RedDbStore{
         obj.chunks
             .iter()
             .map(|id| -> anyhow::Result<ChunkDescriptor> {
-                let guard = table.get(id.as_bytes())?
+                let guard = table.get(id.as_str())?
                     .ok_or_else(|| AppError::ObjectNotFound(id.to_string()))?;
                 Ok(serde_json::from_slice(guard.value())?)
             })
@@ -220,13 +263,8 @@ impl RedDbStore{
         let mut table = txn.open_table(CHUNKS)?;
 
         for chunk in chunks{
-            let exists = table.get(chunk.chunk_id.as_bytes())?.is_some();
-            if exists {
-                return Err(anyhow::Error::from(AppError::ImmutableError(chunk.chunk_id.to_string())));
-            } else {
-                let bytes = serde_json::to_vec(chunk)?;
-                table.insert(chunk.chunk_id.as_bytes(), bytes.as_slice())?;
-            }
+            let bytes = serde_json::to_vec(chunk)?;
+            table.insert(chunk.chunk_id.as_str(), bytes.as_slice())?;
         }
 
         Ok(DbResult::Created)

@@ -22,5 +22,6 @@ pub struct MetadataConfig {
 #[derive(Deserialize, Clone)]
 pub struct StorageConfig{
     pub chunk_dir: PathBuf,
-    pub chunk_size_bytes: usize
+    pub chunk_size_bytes: usize,
+    pub perm_dir: PathBuf,
 }

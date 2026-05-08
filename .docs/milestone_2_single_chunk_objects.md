@@ -4,17 +4,17 @@
 
 ## Deliverables
 
-- [ ] `PUT /objects/{bucket}/{*key}` → 201 + version headers
-- [ ] `GET /objects/{bucket}/{*key}` → 200 streaming body
-- [ ] `HEAD /objects/{bucket}/{*key}` → 200 headers only
-- [ ] `DELETE /objects/{bucket}/{*key}` → 204 (soft delete: sets `deleted_at`)
-- [ ] Object key validation (1–1024 bytes UTF-8, no null bytes, no leading/trailing whitespace)
+- [x] `PUT /objects/{bucket}/{*key}` → 201 + version headers
+- [x] `GET /objects/{bucket}/{*key}` → 200 streaming body
+- [x] `HEAD /objects/{bucket}/{*key}` → 200 headers only
+- [x] `DELETE /objects/{bucket}/{*key}` → 204 (soft delete: sets `deleted_at`)
+- [x] Object key validation (1–1024 bytes UTF-8, no null bytes, no leading/trailing whitespace)
 - [ ] SHA-256 computed inline during streaming write (one pass, no re-read)
 - [ ] Atomic write: stream → staging file → fsync → rename to final path → fsync parent dir → commit metadata
 - [ ] ETag = `"sha256hex"` (double-quoted per RFC 7232)
 - [ ] `ObjectVersion` + `ObjectManifest` written atomically in single redb transaction
 - [ ] GET returns 404 for deleted objects
-- [ ] `Content-Type` header round-trips (stored and returned)
+- [x] `Content-Type` header round-trips (stored and returned)
 - [ ] Optional: `X-Blobfish-Checksum-Sha256` request header validated on PUT
 
 ## Response Headers (PUT / GET / HEAD)
