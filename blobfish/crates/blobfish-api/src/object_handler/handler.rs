@@ -49,17 +49,29 @@ pub async fn put_object(
         .await
         .map_err(|e| ApiError::Internal(anyhow::Error::from(AppError::InvalidObject(e.to_string(), Option::from(e.to_string())))))?;
 
+    let headers = &parts.headers;
 
-    let content_type = &parts
-        .headers
+    let content_type = headers
         .get("content-type")
         .cloned()
         .unwrap_or_else(|| HeaderValue::from_static("application/octet-stream"));
+
+    let sha256_input = headers
+        .get("x-blobfish-sha256")
+        .cloned();
 
     let stream  = body.into_data_stream().map_err(std::io::Error::other);
     let reader = StreamReader::new(stream);
 
     let chunks = state.storage_service.write_to_disk(reader, &key).await?;
+
+    if sha256_input.is_some(){
+        let sha256_input = sha256_input.unwrap();
+        let full_sha: String = chunks.iter().map(|i| i.chunk_id.clone()).collect();
+        if full_sha != sha256_input {
+            return Err(ApiError::Internal(anyhow::Error::from(AppError::IntegrityValidationFailed(format!("gen: {} || input: {}", full_sha, sha256_input.to_str().unwrap())))))
+        }
+    }
 
     let status = match state.put_object(
         &key,

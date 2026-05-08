@@ -102,6 +102,19 @@ fi
 #
 #
 
+# validate integrity check
+status_code=$(curl -X PUT -s -o /dev/null -w "%{http_code}" --data-binary @cat.jpg -H "content-type: image/jpeg" -H "x-blobfish-sha256: 1c9cd40b037bbac4f4b236de657bab130200bb037c5df01372cc72b10144d7ab-WRONG" localhost:31415/objects/photos/cat.jpg)
+if [ "$status_code" -ne 400 ]; then
+  echo "Failed 6: $status_code"
+  exit 1
+fi
+
+status_code=$(curl -X PUT -s -o /dev/null -w "%{http_code}" --data-binary @cat.jpg -H "content-type: image/jpeg" -H "x-blobfish-sha256: 1c9cd40b037bbac4f4b236de657bab130200bb037c5df01372cc72b10144d7ab" localhost:31415/objects/photos/cat.jpg)
+if [ "$status_code" -ne 200 ]; then
+  echo "Failed 7: $status_code"
+  exit 1
+fi
+
 echo "done."
 
 bash down.sh

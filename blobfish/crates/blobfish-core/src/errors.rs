@@ -20,4 +20,7 @@ pub enum AppError {
 
     #[error("Object is not valid: {0}")]
     InvalidObject(String, Option<String>),
+
+    #[error("Provided integrity value does not match the generated integrity value.")]
+    IntegrityValidationFailed(String),
 }

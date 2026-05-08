@@ -43,7 +43,7 @@ impl StorageService {
         let mut perm_path = self.perm_dir.clone();
         perm_path.push(&hash_hex);
 
-        if(!perm_path.exists()){
+        if !perm_path.exists(){
             // Atomically move from staging -> permanent
             tokio::fs::rename(&staging_path, &perm_path).await
                 .map_err(|e| anyhow::Error::from(AppError::InvalidObject(key.to_string(), Option::from(e.to_string()))))?;

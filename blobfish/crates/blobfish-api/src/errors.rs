@@ -43,6 +43,10 @@ impl IntoResponse for ApiError {
                             tracing::warn!(error = %err, detail, "Object is Invalid");
                             (StatusCode::BAD_REQUEST, msg.clone())
                         },
+                        AppError::IntegrityValidationFailed(detail) => {
+                            tracing::warn!(error = %err, detail, "Object is Invalid");
+                            (StatusCode::BAD_REQUEST, err.to_string())
+                        },
                     }
                 } else {
                     tracing::error!(error = %err, "Internal server error");

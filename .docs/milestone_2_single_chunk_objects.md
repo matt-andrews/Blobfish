@@ -9,13 +9,13 @@
 - [x] `HEAD /objects/{bucket}/{*key}` → 200 headers only
 - [x] `DELETE /objects/{bucket}/{*key}` → 204 (soft delete: sets `deleted_at`)
 - [x] Object key validation (1–1024 bytes UTF-8, no null bytes, no leading/trailing whitespace)
-- [ ] SHA-256 computed inline during streaming write (one pass, no re-read)
+- [x] SHA-256 computed inline during streaming write (one pass, no re-read)
 - [ ] Atomic write: stream → staging file → fsync → rename to final path → fsync parent dir → commit metadata
-- [ ] ETag = `"sha256hex"` (double-quoted per RFC 7232)
+- [x] ETag = `"sha256hex"` (double-quoted per RFC 7232)
 - [ ] `ObjectVersion` + `ObjectManifest` written atomically in single redb transaction
-- [ ] GET returns 404 for deleted objects
+- [x] GET returns 404 for deleted objects
 - [x] `Content-Type` header round-trips (stored and returned)
-- [ ] Optional: `X-Blobfish-Checksum-Sha256` request header validated on PUT
+- [x] Optional: `X-Blobfish-Sha256` request header validated on PUT
 
 ## Response Headers (PUT / GET / HEAD)
 
