@@ -5,9 +5,9 @@ services:
       - "31415:8080"
     volumes:
       - blobfish-data:/data/blobfish
-      - ./dev.toml:/etc/blobfish/config.toml:ro
+      - ./docker.toml:/etc/blobfish/config.toml:ro
     environment:
-      RUST_LOG: blobfish=debug,tower_http=info
+      - RUST_LOG=info
 
 volumes:
   blobfish-data:

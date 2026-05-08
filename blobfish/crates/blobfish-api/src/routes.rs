@@ -2,17 +2,20 @@
 use axum::{Router, routing::get};
 use axum::extract::State;
 use axum::http::StatusCode;
-use tracing::warn;
+use axum::routing::post;
+use tracing::{error, info, warn};
 use blobfish_core::object_service::ObjectService;
-use crate::buckets_handler;
+use crate::{buckets_handler, object_handler};
 use crate::errors::ApiError;
 
 pub fn router(object_service: ObjectService) -> Router {
     let mut router : Router<ObjectService> = Router::new()
         .route("/healthz", get(healthz))
-        .route("/readyz", get(readyz));
+        .route("/readyz", get(readyz))
+        .route("/detachz", post(detachz));
 
     router = buckets_handler::router(router);
+    router = object_handler::router(router);
 
     router
         .with_state(object_service)
@@ -29,6 +32,18 @@ async fn readyz(
         Err(err) => {
             warn!(%err, "readyz failed");
             Ok(StatusCode::SERVICE_UNAVAILABLE)
+        }
+    }
+}
+async fn detachz(
+    State(state): State<ObjectService>
+) -> Result<StatusCode, ApiError>{
+    info!("detaching db");
+    match state.detach().await{
+        Ok(_) => Ok(StatusCode::OK),
+        Err(err) => {
+            error!(%err, "detachz failed");
+            Ok(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }

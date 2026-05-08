@@ -5,7 +5,7 @@ use axum::{
 };
 use serde_json::json;
 use thiserror::Error;
-use blobfish_core::errors::BucketError;
+use blobfish_core::errors::AppError;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
@@ -17,11 +17,35 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, message) = match &self {
             ApiError::Internal(err) => {
-                if let Some(bucket_err) = err.downcast_ref::<BucketError>() {
+                if let Some(bucket_err) = err.downcast_ref::<AppError>() {
                     match bucket_err{
-                        BucketError::InvalidBucketName(msg) => {
+                        AppError::InvalidBucketName(msg) => {
                             tracing::warn!(error = %err, "Invalid bucket name");
                             (StatusCode::BAD_REQUEST, msg.clone())
+                        },
+                        AppError::ObjectNotFound(msg) => {
+                            tracing::warn!(error = %err, "Object not found");
+                            (StatusCode::NOT_FOUND, msg.clone())
+                        },
+                        AppError::ImmutableError(msg) => {
+                            tracing::warn!(error = %err, "Immutable Error");
+                            (StatusCode::BAD_REQUEST, msg.clone())
+                        },
+                        AppError::InvalidObjectName(msg) => {
+                            tracing::warn!(error = %err, "Invalid object name");
+                            (StatusCode::BAD_REQUEST, msg.clone())
+                        },
+                        AppError::ObjectDeleted(msg) => {
+                            tracing::warn!(error = %err, "Object Deleted");
+                            (StatusCode::NOT_FOUND, msg.clone())
+                        },
+                        AppError::InvalidObject(msg, detail) => {
+                            tracing::warn!(error = %err, detail = detail.clone().unwrap_or_default(), "Object is Invalid");
+                            (StatusCode::BAD_REQUEST, msg.clone())
+                        },
+                        AppError::IntegrityValidationFailed(detail) => {
+                            tracing::warn!(error = %err, detail, "Object is Invalid");
+                            (StatusCode::BAD_REQUEST, err.to_string())
                         },
                     }
                 } else {

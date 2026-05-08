@@ -2,7 +2,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
-use blobfish_core::bucket::Bucket;
+use blobfish_core::models::bucket::Bucket;
 use blobfish_core::object_service::ObjectService;
 use blobfish_core::types::DbResult;
 use crate::errors::ApiError;

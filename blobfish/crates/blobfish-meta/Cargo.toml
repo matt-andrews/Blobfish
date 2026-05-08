@@ -8,3 +8,6 @@ redb = "4.1.0"
 anyhow = { workspace = true }
 blobfish-core = { workspace = true }
 serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }

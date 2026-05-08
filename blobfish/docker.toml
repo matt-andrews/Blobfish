@@ -1,17 +1,17 @@
 [node]
 cluster_id   = "dev-cluster"
-node_id      = "auto"          # generate UUID on first boot, persist to node.json
+node_id      = "auto"
 bind_addr    = "0.0.0.0:8080"
 
 [storage]
 chunk_size_bytes    = 8388608  # 8 MiB
-chunk_dir = "./data/blobfish/chunks"
-perm_dir = "./data/blobfish/perm"
+chunk_dir = "/data/blobfish/chunks"
+perm_dir = "/data/blobfish/perm"
 staging_ttl_seconds = 86400
 
 [metadata]
 engine = "redb"
-path   = "./meta/blobfish.db"
+path   = "/data/blobfish/meta/blobfish.db"
 
 [placement]
 replication_factor = 1
