@@ -49,7 +49,7 @@ impl StorageService {
                 .map_err(|e| anyhow::Error::from(AppError::InvalidObject(key.to_string(), Option::from(e.to_string()))))?;
         }
 
-        working.set(hash_hex.into(), hash_bytes, content_length)?;
+        working.set(hash_hex.into(), hash_bytes, content_length);
 
         result.push(working.clone());
         Ok(result)

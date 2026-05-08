@@ -99,7 +99,6 @@ pub struct ChunkDescriptor {
     pub ordinal: u32,
     pub offset: u64,
     pub size_bytes: u64,
-    pub checksum_sha256: String,
     pub sha256: Vec<u8>
 }
 
@@ -111,15 +110,13 @@ impl ChunkDescriptor{
             ordinal: 0,
             offset: 0,
             size_bytes: 0,
-            checksum_sha256: String::new(),
             sha256: vec![]
         }
     }
-    pub fn set(&mut self, hex: String, sha256: Vec<u8>, size: u64) -> anyhow::Result<()>{
+    pub fn set(&mut self, hex: String, sha256: Vec<u8>, size: u64){
         self.sha256 = sha256.clone();
         self.size_bytes = size;
         self.chunk_id = hex;
-        Ok(())
     }
 }
 
@@ -327,7 +324,6 @@ mod tests {
             temp_id: Default::default(),
             ordinal: 0,
             offset: 0,
-            checksum_sha256: "".to_string(),
         }
     }
 

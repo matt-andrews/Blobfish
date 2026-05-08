@@ -25,7 +25,7 @@ impl IntoResponse for ApiError {
                         },
                         AppError::ObjectNotFound(msg) => {
                             tracing::warn!(error = %err, "Object not found");
-                            (StatusCode::BAD_REQUEST, msg.clone())
+                            (StatusCode::NOT_FOUND, msg.clone())
                         },
                         AppError::ImmutableError(msg) => {
                             tracing::warn!(error = %err, "Immutable Error");

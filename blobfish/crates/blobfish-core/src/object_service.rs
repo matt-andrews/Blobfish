@@ -69,6 +69,7 @@ impl ObjectService{
         let owned_rep = Arc::clone(&self.repository);
         let version_id = Uuid::new_v4();
         let key_obj = ObjectKey::new(key, bucket, version_id);
+        key_obj.is_valid()?;
         let version = ObjectVersion::new(key_obj.key_id, content_type, chunks.clone(), version_id);
         tokio::task::spawn_blocking(move || {
             owned_rep.put_object(key_obj, version, chunks)

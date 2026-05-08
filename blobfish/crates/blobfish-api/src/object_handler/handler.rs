@@ -65,18 +65,17 @@ pub async fn put_object(
 
     let chunks = state.storage_service.write_to_disk(reader, &key).await?;
 
-    if sha256_input.is_some(){
-        let sha256_input = sha256_input.unwrap();
+    if let Some(sha256_input) = sha256_input {
         let full_sha: String = chunks.iter().map(|i| i.chunk_id.clone()).collect();
         if full_sha != sha256_input {
-            return Err(ApiError::Internal(anyhow::Error::from(AppError::IntegrityValidationFailed(format!("gen: {} || input: {}", full_sha, sha256_input.to_str().unwrap())))))
+            return Err(ApiError::Internal(anyhow::Error::from(AppError::IntegrityValidationFailed(format!("gen: {} || input: {}", full_sha, sha256_input.to_str().unwrap_or_default())))))
         }
     }
 
     let status = match state.put_object(
         &key,
         &bucket,
-        content_type.to_str().unwrap(),
+        content_type.to_str().unwrap_or_default(),
         chunks.clone()
     ).await?{
         DbResult::Created => Ok(StatusCode::CREATED),
@@ -90,10 +89,12 @@ pub async fn put_object(
 
 fn data_to_header(data: ObjectVersion, chunks: Option<Vec<ChunkDescriptor>>) -> HeaderMap{
     let mut result = HeaderMap::new();
+    //etag is intentionally a {sha256_of_sha256_hashes}-{count} for future proofing chunk compat
     result.insert("etag", format!("\"{}\"", data.checksum_sha256).parse().unwrap());
     result.insert("content-length", data.size_bytes.to_string().parse().unwrap());
-    if chunks.is_some(){
-        let full_sha: String = chunks.unwrap().iter().map(|i| i.chunk_id.clone()).collect();
+    if let Some(chunks) = chunks{
+        let full_sha: String = chunks.iter().map(|i| i.chunk_id.clone()).collect();
+        //this is the full concatenated sha256 of all the chunks
         result.insert("x-blobfish-sha256", full_sha.parse().unwrap());
     }
     if data.content_type.is_some() {
