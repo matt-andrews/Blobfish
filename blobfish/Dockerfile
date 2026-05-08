@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 RUN useradd -m blobfish
 RUN mkdir -p /data/blobfish/chunks && chown -R blobfish:blobfish /data/blobfish
 RUN mkdir -p /data/blobfish/perm && chown -R blobfish:blobfish /data/blobfish
+RUN mkdir -p /data/blobfish/meta && chown -R blobfish:blobfish /data/blobfish/meta
 USER blobfish
 WORKDIR /app
 COPY --from=builder /app/target/release/blobfish /usr/local/bin/blobfish

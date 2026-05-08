@@ -5,9 +5,10 @@ use axum::response::IntoResponse;
 use tokio_util::io::{ReaderStream, StreamReader};
 use futures::TryStreamExt;
 use blobfish_core::errors::AppError;
-use blobfish_core::models::object::{ChunkDescriptor, ObjectVersion};
+use blobfish_core::models::object::{ChunkDescriptor, ObjectKey, ObjectVersion};
 use blobfish_core::object_service::ObjectService;
 use blobfish_core::types::DbResult;
+use uuid::Uuid;
 use crate::errors::ApiError;
 
 pub async fn get_object(
@@ -48,6 +49,14 @@ pub async fn put_object(
     let Path((bucket, key)) = Path::<(String, String)>::from_request_parts(&mut parts, &state)
         .await
         .map_err(|e| ApiError::Internal(anyhow::Error::from(AppError::InvalidObject(e.to_string(), Option::from(e.to_string())))))?;
+
+    //validate bucket is real
+    if !state.does_bucket_exist(&bucket).await?{
+        return Err(ApiError::Internal(anyhow::Error::from(AppError::ObjectNotFound(bucket.to_string()))));
+    }
+
+    //validate name early, we don't care about the object
+    ObjectKey::new(&key, &bucket, Uuid::new_v4()).is_valid().map_err(|e| ApiError::Internal(anyhow::Error::from(e)))?;
 
     let headers = &parts.headers;
 

@@ -40,7 +40,7 @@ impl IntoResponse for ApiError {
                             (StatusCode::NOT_FOUND, msg.clone())
                         },
                         AppError::InvalidObject(msg, detail) => {
-                            tracing::warn!(error = %err, detail, "Object is Invalid");
+                            tracing::warn!(error = %err, detail = detail.clone().unwrap_or_default(), "Object is Invalid");
                             (StatusCode::BAD_REQUEST, msg.clone())
                         },
                         AppError::IntegrityValidationFailed(detail) => {

@@ -11,7 +11,7 @@ staging_ttl_seconds = 86400
 
 [metadata]
 engine = "redb"
-path   = "/data/blobfish/meta.redb"
+path   = "/data/blobfish/meta/blobfish.db"
 
 [placement]
 replication_factor = 1

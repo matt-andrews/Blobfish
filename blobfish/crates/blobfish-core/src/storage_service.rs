@@ -15,9 +15,25 @@ pub struct StorageService{
 }
 impl StorageService {
     pub fn new(config: Config) -> Self {
+        let full_dir = config.storage.chunk_dir.clone();
+        let perm_dir = config.storage.perm_dir.clone();
+        std::fs::create_dir_all(&full_dir).unwrap_or_else(|e| {
+            panic!(
+                "failed to create storage chunk_dir '{}': {}",
+                full_dir.display(),
+                e
+            )
+        });
+        std::fs::create_dir_all(&perm_dir).unwrap_or_else(|e| {
+            panic!(
+                "failed to create storage perm_dir '{}': {}",
+                perm_dir.display(),
+                e
+            )
+        });
         Self{
-            full_dir: config.storage.chunk_dir.clone(),
-            perm_dir: config.storage.perm_dir.clone()
+            full_dir,
+            perm_dir
         }
     }
     pub async fn write_to_disk(&self, reader: impl AsyncRead + Unpin, key: &str) -> anyhow::Result<Vec<ChunkDescriptor>> {
@@ -55,7 +71,12 @@ impl StorageService {
         Ok(result)
     }
     pub async fn read_from_disk(&self, chunks: Vec<ChunkDescriptor>, key: &str) -> anyhow::Result<File>{
-        let working = chunks.first().unwrap();
+        let working = chunks.first().ok_or_else(|| {
+            anyhow::Error::from(AppError::InvalidObject(
+                key.to_string(),
+                Some("object has no chunks".to_string()),
+            ))
+        })?;
         let mut path = self.perm_dir.clone();
         path.push(working.chunk_id.to_string());
 
